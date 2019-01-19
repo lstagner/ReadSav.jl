@@ -159,10 +159,10 @@ struct StructDesc
 end
 
 struct TypeDesc 
-    name::Symbol # :ARRAY or :STRUCTURE
+    name::Union{Symbol, Nothing} # :ARRAY or :STRUCTURE
     typeCode::Int32
     varflags::Int32
-    arrayDesc::ArrayDesc
+    arrayDesc::Union{ArrayDesc, Nothing}
     structDesc::Union{StructDesc,Nothing}
 end
 
@@ -328,7 +328,7 @@ function readArray(s::IOStream, typeCode, arrayDesc::ArrayDesc)
         # These are 2 byte types, need to skip every two as they are not packed
         bytes = read(s, arrayDesc.nBytes * 2)
         array = Vector(ntoh.(reinterpret(DTYPE_DICT[typeCode], bytes)))[2:2:end]
-
+ 
     else
         array = []  # Read bytes into list
         for i in 1:(arrayDesc.nElements)
@@ -340,9 +340,8 @@ function readArray(s::IOStream, typeCode, arrayDesc::ArrayDesc)
 
     # Reshape array if needed
     if arrayDesc.nDims > 1
-        dims = [Int64(arrayDesc.dims[n]) for n in 1:arrayDesc.nDims]
-        dims = reverse(dims)
-        array = reshape(array, dims...)
+        dims = [Int64(arrayDesc.dims[n]) for n in 1:arrayDesc.nDims]        
+        array = reshape(array, dims...) # Fortran order
     end
 
     # Go to next alignment position
@@ -565,6 +564,10 @@ function readTypeDesc(s::IOStream)
     elseif array
         name = :ARRAY
         arrayDesc = readArrayDesc(s)
+        structDesc = nothing
+    else 
+        name = nothing
+        arrayDesc = nothing
         structDesc = nothing
     end
 
