@@ -3,6 +3,6 @@
     Enables to read IDL .sav files.
 """
 module ReadSav
-    include("readsav.jl")
+    include("read_sav.jl")
     export readsav
 end
